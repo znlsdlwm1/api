@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.ag.homepage.api.service.ApiKfDao">
+
+	<sql id="countHeaderQuery">
+		SELECT COUNT(1) AS TOTAL_COUNT FROM (
+    </sql>
+
+    <sql id="countTailQuery">
+        )
+    </sql>
+
+    <sql id="pagingHeaderQuery">
+		SELECT * FROM (SELECT ROWNUM AS RNUM, Z.* FROM (
+    </sql>
+
+    <sql id="pagingTailQuery">
+        ) Z WHERE ROWNUM &lt;= #{_page} * #{_pageSize}) WHERE RNUM &gt; (#{_page} - 1) * #{_pageSize}
+    </sql>
+
+
+    <sql id="selectPublishListQuery">
+		SELECT DECODE(A.C_PUBLICATION_TYPE, 01, '도서', 02, 'DVD/블루레이') AS P_KIND, A.C_TITLE AS TITLE, CA.C_CODE_SUB_NAME AS C_SUB, A.C_PUBLISHER AS PUBLISHER, A.C_YEAR AS C_YEAR, A.C_CONTENT AS INTRODUCE, A.C_INDEX AS C_INDEX
+			FROM
+			  TB_PUBLICATION_BOARD A,
+			     ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C040') CA
+			 WHERE
+			  A.C_PUBLICATION_SUB_TYPE = CA.C_CODE_SUB_ID(+)
+    </sql>
+
+
+    <select id="selectPublishListCount" parameterType="hashMap" resultType="int">
+        <include refid="countHeaderQuery" />
+        <include refid="selectPublishListQuery"/>
+        <include refid="countTailQuery" />
+    </select>
+
+    <select id="selectPublishPageList" parameterType="hashMap" resultType="egovMap">
+        <include refid="pagingHeaderQuery" />
+        <include refid="selectPublishListQuery"/>
+        <include refid="pagingTailQuery" />
+    </select>
+
+
+    <sql id="selectKofaScheduleListQuery">
+		SELECT
+		  c.c_program_id, c.c_program_name, C.C_PROGRAM_STARTDATE , C.C_PROGRAM_ENDDATE ,
+		     b.c_movie_id, B.C_MOVIE_NAME, B.C_DIRECTOR , B.C_PRODUCTION_YEAR, B.C_ACTORS , B.C_RUNNING_TIME, ME.C_CODE_SUB_NAME , RA.C_CODE_SUB_NAME as C_CODE_SUB_NAME2 ,
+		     d.c_SYNOPSYS ,
+		     B.C_KMDB_NATION , B.C_KMDB_DATAID ,
+		     A.C_MOVIE_DATE , A.C_MOVIE_TIME , TH.C_CODE_SUB_NAME  as C_CODE_SUB_NAME3 , A.C_IS_GV , A.C_IS_LECTURE
+		FROM
+		  TB_PROGRAM_MOVIE_CALENDAR a,
+		     TB_PROGRAM_MOVIE_INFO b,
+		     TB_PROGRAM_INFO c,
+		     TB_PROGRAM_MOVIE_DESC d,
+		     ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C016') TH,
+		     ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C015') ME,
+		     ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C018') RA
+		 WHERE
+		  A.C_MOVIE_THEATER = TH.C_CODE_SUB_ID(+) and
+		  B.C_MEDIA_TYPE = ME.C_CODE_SUB_ID(+) and
+		     B.C_MOVIE_RATING = RA.C_CODE_SUB_ID(+) and
+		     B.C_PROGRAM_ID = C.C_PROGRAM_ID and
+		     B.C_PROGRAM_ID = C.C_PROGRAM_ID and
+		  A.C_MOVIE_ID = B.C_MOVIE_ID AND
+		     a.C_MOVIE_ID = d.C_MOVIE_ID AND
+		     D.C_LANGUAGE_CD = 'ko'
+    </sql>
+
+
+    <select id="selectKofaScheduleListCount" parameterType="hashMap" resultType="int">
+        <include refid="countHeaderQuery" />
+        <include refid="selectKofaScheduleListQuery"/>
+        <include refid="countTailQuery" />
+    </select>
+
+    <select id="selectKofaSchedulePageList" parameterType="hashMap" resultType="egovMap">
+        <include refid="pagingHeaderQuery" />
+        <include refid="selectKofaScheduleListQuery"/>
+        <include refid="pagingTailQuery" />
+    </select>
+
+
+    <select id="selectApiKofaScheduleList" parameterType="hashMap" resultType="ApiXmlVo">
+    
+			SELECT
+				   C.c_program_id
+		         , C.c_program_name
+		         , C.C_PROGRAM_STARTDATE 
+		         , C.C_PROGRAM_ENDDATE 
+		         , B.c_movie_id
+		         , B.C_MOVIE_NAME
+		         , B.C_MOVIE_NAME_EN
+		         , B.C_DIRECTOR 
+		         , B.C_PRODUCTION_YEAR
+		         , B.C_ACTORS 
+		         , B.C_RUNNING_TIME
+		         , ME.C_CODE_SUB_NAME 
+		         , RA.C_CODE_SUB_NAME as C_CODE_SUB_NAME2 
+		         , D.c_SYNOPSYS 
+		         , B.C_KMDB_NATION 
+		         , B.C_KMDB_DATAID 
+		         , A.C_MOVIE_DATE 
+		         , A.C_MOVIE_TIME 
+		         , TH.C_CODE_SUB_NAME  as C_CODE_SUB_NAME3 
+		         , A.C_IS_GV , A.C_IS_LECTURE
+		         , LPAD(PA.C_FILE_NAME, 94 ,'https://www.koreafilm.or.kr/upload/programMovieManage/')
+                 , LPAD(QA.C_FILE_NAME, 94 ,'https://www.koreafilm.or.kr/upload/programMovieManage/')
+                 , LPAD(B.C_MOVIE_ID, 43 ,'https://www.koreafilm.or.kr/movie/')
+		FROM
+				    TB_PROGRAM_MOVIE_CALENDAR A
+			        INNER JOIN TB_PROGRAM_MOVIE_INFO B ON A.C_MOVIE_ID = B.C_MOVIE_ID
+			        INNER JOIN TB_PROGRAM_INFO C ON B.C_PROGRAM_ID = C.C_PROGRAM_ID
+			        INNER JOIN TB_PROGRAM_MOVIE_DESC D ON A.C_MOVIE_ID = D.C_MOVIE_ID 
+			        LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C016') TH ON A.C_MOVIE_THEATER = TH.C_CODE_SUB_ID
+			        LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C015') ME ON B.C_MEDIA_TYPE = ME.C_CODE_SUB_ID
+			        LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C018') RA ON B.C_MOVIE_RATING = RA.C_CODE_SUB_ID
+			        LEFT OUTER JOIN ( SELECT C_BOARD_NO, C_FILE_NAME, C_CATEGORY_CD FROM TB_ATTACH_FILE WHERE C_CATEGORY_CD = '05') PA ON B.C_MOVIE_ID = PA.C_BOARD_NO
+			        LEFT OUTER JOIN ( SELECT C_BOARD_NO, C_FILE_NAME, C_CATEGORY_CD FROM TB_ATTACH_FILE WHERE C_CATEGORY_CD = '02') QA ON B.C_MOVIE_ID = QA.C_BOARD_NO
+		WHERE
+			       D.C_LANGUAGE_CD = 'ko'
+			       AND A.C_MOVIE_DATE =  RPAD(#{valDate},8,0)
+		     
+     </select>
+
+     <!--  사용자의 요청변수가 있는경우 쿼리  -->
+   <select id="selectApiEducationList" parameterType="hashMap" resultType="EducationVo">
+                    
+        SELECT
+				   A.C_EDUCATION_ID
+		         , A.C_EDUCATION_TITLE AS eduTitle
+		         , TH.C_CODE_SUB_NAME AS State
+                 , LPAD(B.C_FILE_NAME, 93, 'https://admin.koreafilm.or.kr/upload/educationManage/') AS imageURL
+		         , A.C_EDUCATION_SCHEDULE AS schedule 
+		         , TI.C_CODE_SUB_NAME AS eduTarget
+		         , A.C_EDUCATION_PERSONNEL AS TraineesNum
+                 , A.C_EDUCATION_COST AS Fee 
+		         , A.C_EDUCATION_APPLY_PERIOD AS applPeriod 
+		         ,REGEXP_REPLACE(A.C_EDUCATION_STARTDATE, '(.{4})(.{2})(.{2})', '\1-\2-\3') AS eduSDate 
+		         ,REGEXP_REPLACE(A.C_EDUCATION_ENDDATE, '(.{4})(.{2})(.{2})', '\1-\2-\3') AS eduEDate 
+		         , DECODE(C_IS_GROUP, 0, '개인', 1, '단체') GroupYN
+                 , LPAD(A.C_EDUCATION_ID, 54, 'https://www.koreafilm.or.kr/museum/educations/') AS URL
+		FROM
+				    TB_EDUCATION_INFO A
+			        INNER JOIN TB_ATTACH_FILE B ON B.C_BOARD_NO = A.C_EDUCATION_ID
+                    LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C021') TH ON A.C_EDUCATION_STATUS_CD = TH.C_CODE_SUB_ID
+                    LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C022') TI ON A.C_EDUCATION_TARGET_CD = TI.C_CODE_SUB_ID
+		WHERE
+                    A.C_EDUCATION_STATUS_CD = #{eduState}
+                    AND A.C_EDUCATION_STARTDATE =  RPAD(#{eduDate},8,0)	   
+                   
+       
+       
+       </select>
+       <!--  사용자의 요청변수가 없는경우의 쿼리 : 교육   -->
+       <select id="selectApiEducationDefault" parameterType="hashMap" resultType="EducationVo">
+	     SELECT    
+               *
+           
+    FROM(
+        SELECT  ROW_NUMBER() OVER(ORDER BY A.C_EDUCATION_STARTDATE DESC) num,A.C_EDUCATION_ID
+      
+         , A.C_EDUCATION_TITLE AS eduTitle
+         , TH.C_CODE_SUB_NAME AS State
+         , LPAD(B.C_FILE_NAME, 93, 'https://admin.koreafilm.or.kr/upload/educationManage/') AS imageURL
+         , A.C_EDUCATION_SCHEDULE AS schedule
+         , TI.C_CODE_SUB_NAME AS eduTarget
+         , A.C_EDUCATION_PERSONNEL AS TraineesNum
+         , A.C_EDUCATION_COST AS Fee
+         , A.C_EDUCATION_APPLY_PERIOD AS applPeriod
+         ,REGEXP_REPLACE(A.C_EDUCATION_STARTDATE, '(.{4})(.{2})(.{2})', '\1-\2-\3') AS eduSDate
+         ,REGEXP_REPLACE(A.C_EDUCATION_ENDDATE, '(.{4})(.{2})(.{2})', '\1-\2-\3') AS eduEDate
+         , DECODE(C_IS_GROUP, 0, '개인', 1, '단체') GroupYN
+         , LPAD(A.C_EDUCATION_ID, 54, 'https://www.koreafilm.or.kr/museum/educations/') AS URL
+            FROM
+              TB_EDUCATION_INFO A
+           
+            INNER JOIN TB_ATTACH_FILE B ON B.C_BOARD_NO = A.C_EDUCATION_ID
+            LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C021') TH ON A.C_EDUCATION_STATUS_CD = TH.C_CODE_SUB_ID
+            LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C022') TI ON A.C_EDUCATION_TARGET_CD = TI.C_CODE_SUB_ID
+          
+            WHERE A.C_EDUCATION_STATUS_CD = #{eduState}
+            )
+     
+	                     WHERE num BETWEEN #{itemFirstNum} and #{itemLastNum}
+	                    
+       
+       </select>
+       <!--  사용자의 요청변수가 없는경우의 쿼리 : 전시회  -->
+          <select id="selectApiExhibitionDefault" parameterType="hashMap" resultType="ExhibitionVo">
+	                  SELECT      
+	              *
+	        FROM(
+	            SELECT  ROW_NUMBER() OVER(ORDER BY A.C_EXHIBITION_STARTDATE DESC) num,  A.C_EXHIBITION_TITLE AS exhbnTitle
+	                , A.C_EXHIBITION_SUB_TITLE AS exhbnTitleSub
+	                  , TH.C_CODE_SUB_NAME  AS exhbnClass
+	                 , DECODE(C_EXHIBITION_STATUS_CD, 0, '지난전시', 1, '전시중', 2, '전시예정')  AS exhbnState
+	                 , LPAD(PA.C_FILE_NAME, 92 ,'https://www.koreafilm.or.kr/upload/exhibitionManage/') AS ImageURL
+	                 , A.C_EXHIBITION_LOCATION AS ExhbnPlace
+	                 ,REGEXP_REPLACE(A.C_EXHIBITION_STARTDATE, '(.{4})(.{2})(.{2})', '\1-\2-\3') AS exhbnSDate
+	                 ,REGEXP_REPLACE(A.C_EXHIBITION_ENDDATE, '(.{4})(.{2})(.{2})', '\1-\2-\3') AS exhbnEDate
+	                 , LPAD(A.C_EXHIBITION_ID, 54 ,'https://www.koreafilm.or.kr/museum/exhibition/') AS URL
+	                 , TC.C_EXHIBITION_CONTENT AS ExhbnDesc
+	                FROM
+	                    TB_EXHIBITION_INFO A
+	                    
+	                    LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C020') TH ON A.C_EXHIBITION_TYPE = TH.C_CODE_SUB_ID
+	                    LEFT OUTER JOIN ( SELECT C_BOARD_CD, C_BOARD_NO, C_FILE_NAME, C_CATEGORY_CD, C_STATUS_CD FROM TB_ATTACH_FILE WHERE C_BOARD_CD='04') PA ON A.C_EXHIBITION_ID = PA.C_BOARD_NO
+	                    LEFT OUTER JOIN ( SELECT C_EXHIBITION_ID, C_CHANNEL_CD, C_EXHIBITION_CONTENT FROM TB_EXHIBITION_CONTENT) TC ON A.C_EXHIBITION_ID = TC.C_EXHIBITION_ID
+	                   WHERE  A.C_EXHIBITION_STATUS_CD = #{exhbnState}
+	                    )
+	                    
+	                 
+	                    
+	                     WHERE num BETWEEN #{itemFirstNum} and #{itemLastNum}
+	                    
+       
+       </select>
+       <!--  data갯수 세기 : 교육리스트 -->
+       <select id="getDataCountEdu" parameterType="String"  resultType="Int">
+     SELECT count(*) FROM TB_EDUCATION_INFO WHERE C_EDUCATION_STATUS_CD = #{eduState}
+       </select>
+       <!-- data갯수 세기 : 전시회 리스트  -->
+       <select id="getDataCountExhib" parameterType="String" resultType="Int">
+       SELECT count(*) FROM TB_EXHIBITION_INFO WHERE C_EXHIBITION_STATUS_CD = #{exhbnState} 
+       
+       </select>
+       
+       <select id="selectApiExhibitionList" parameterType="hashMap" resultType="ExhibitionVo">
+          SELECT
+				
+		           A.C_EXHIBITION_TITLE AS exhbnTitle
+                 , A.C_EXHIBITION_SUB_TITLE AS exhbnTitleSub
+                 , TH.C_CODE_SUB_NAME  AS exhbnClass 
+                 , DECODE(C_EXHIBITION_STATUS_CD, 0, '지난전시', 1, '전시중', 2, '전시예정')  AS exhbnState
+                 , LPAD(PA.C_FILE_NAME, 92 ,'https://www.koreafilm.or.kr/upload/exhibitionManage/') AS ImageURL
+                 , A.C_EXHIBITION_LOCATION AS ExhbnPlace 
+                 ,REGEXP_REPLACE(A.C_EXHIBITION_STARTDATE, '(.{4})(.{2})(.{2})', '\1-\2-\3') AS exhbnSDate 
+                 ,REGEXP_REPLACE(A.C_EXHIBITION_ENDDATE, '(.{4})(.{2})(.{2})', '\1-\2-\3') AS exhbnEDate 
+                 , LPAD(A.C_EXHIBITION_ID, 54 ,'https://www.koreafilm.or.kr/museum/exhibition/') AS URL
+                 , TC.C_EXHIBITION_CONTENT AS ExhbnDesc
+		FROM
+				    TB_EXHIBITION_INFO A
+                    LEFT OUTER JOIN ( SELECT C_CODE_SUB_ID, C_CODE_SUB_NAME FROM TB_CODE_SUB WHERE C_CODE_GROUP_ID = 'C020') TH ON A.C_EXHIBITION_TYPE = TH.C_CODE_SUB_ID
+                    LEFT OUTER JOIN ( SELECT C_BOARD_CD, C_BOARD_NO, C_FILE_NAME, C_CATEGORY_CD, C_STATUS_CD FROM TB_ATTACH_FILE WHERE C_BOARD_CD='04') PA ON A.C_EXHIBITION_ID = PA.C_BOARD_NO
+                    LEFT OUTER JOIN ( SELECT C_EXHIBITION_ID, C_CHANNEL_CD, C_EXHIBITION_CONTENT FROM TB_EXHIBITION_CONTENT) TC ON A.C_EXHIBITION_ID = TC.C_EXHIBITION_ID
+		WHERE
+                    A.C_EXHIBITION_STATUS_CD = #{exhbnState}
+           
+           
+                    AND A.C_EXHIBITION_STARTDATE = RPAD(#{exhdnDate},8,0)	      
+       
+       </select>
+</mapper>
